@@ -1,75 +1,67 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const { WebSocketServer } = require('ws');
-const jwt = require('jsonwebtoken');
+// backend/server.js
+import express from 'express';
+import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
+const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use('/api/', limiter);
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/tors', require('./routes/tors'));
-app.use('/api/scraping', require('./routes/scraping'));
-app.use('/api/export', require('./routes/export'));
-app.use('/api/websites', require('./routes/websites'));
-
-// WebSocket Server
-const wss = new WebSocketServer({ port: 8080 });
-
-wss.on('connection', (ws, req) => {
-  const token = req.url.split('token=')[1];
-  
-  if (!token) {
-    ws.close();
-    return;
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    ws.user = decoded;
-    
-    ws.on('message', (message) => {
-      const data = JSON.parse(message);
-      handleWebSocketMessage(ws, data);
-    });
-
-    ws.on('close', () => {
-      console.log('Client disconnected');
-    });
-
-  } catch (error) {
-    ws.close();
-  }
+// Socket.IO
+const io = new Server(httpServer, {
+  cors: { origin: 'http://localhost:3000' }
 });
 
-function handleWebSocketMessage(ws, data) {
-  switch (data.type) {
-    case 'subscribe':
-      ws.subscriptions = data.channels;
-      break;
-    case 'scraping_command':
-      handleScrapingCommand(ws, data);
-      break;
-    case 'ping':
-      ws.send(JSON.stringify({ type: 'pong' }));
-      break;
-  }
-}
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+});
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Mock data
+const mockTors = [
+  {
+    id: 1,
+    source: 'World Bank',
+    title: 'Education Project Consultant',
+    publish_date: '2024-02-01',
+    organization: 'World Bank'
+  }
+];
+
+// API Routes
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'EchoTrace Backend'
+  });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  res.json({
+    token: 'mock-jwt-token',
+    user: { id: 1, email: 'admin@helios.com', name: 'Admin' }
+  });
+});
+
+app.get('/api/tors', (req, res) => {
+  res.json({
+    tors: mockTors,
+    stats: { total: 1, newToday: 0 }
+  });
+});
+
+// Start server
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });

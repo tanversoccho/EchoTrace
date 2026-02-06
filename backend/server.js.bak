@@ -1,0 +1,304 @@
+// server.js - Simplified EchoTrace Backend (No Database)
+import express from 'express';
+import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const httpServer = createServer(app);
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+app.use(express.json());
+
+// Socket.IO for real-time updates
+const io = new Server(httpServer, {
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Mock data
+const mockTors = [
+  {
+    id: 1,
+    source: 'World Bank',
+    title: 'Education Project Consultant - Bangladesh',
+    description: 'Technical assistance for education sector reform...',
+    publish_date: '2024-02-01',
+    deadline: '2024-03-15',
+    link: '#',
+    organization: 'World Bank',
+    country: 'Bangladesh',
+    category: 'Education',
+    budget_range: '$500K - $1M',
+    is_read: false,
+    is_favorite: false
+  },
+  {
+    id: 2,
+    source: 'UNDP',
+    title: 'Climate Change Adaptation Research',
+    description: 'Research on climate resilience strategies...',
+    publish_date: '2024-02-05',
+    deadline: '2024-03-20',
+    link: '#',
+    organization: 'UNDP',
+    country: 'Global',
+    category: 'Environment',
+    budget_range: '$200K - $500K',
+    is_read: true,
+    is_favorite: true
+  },
+  {
+    id: 3,
+    source: 'ADB',
+    title: 'Infrastructure Development Advisor',
+    description: 'Advisory services for transport infrastructure...',
+    publish_date: '2024-02-10',
+    deadline: '2024-04-01',
+    link: '#',
+    organization: 'Asian Development Bank',
+    country: 'Philippines',
+    category: 'Infrastructure',
+    budget_range: '$1M+',
+    is_read: false,
+    is_favorite: false
+  }
+];
+
+const mockWebsites = [
+  { id: 1, name: 'World Bank', status: 'active', last_run: '2024-02-05T10:30:00Z' },
+  { id: 2, name: 'UNDP', status: 'active', last_run: '2024-02-05T11:15:00Z' },
+  { id: 3, name: 'ADB', status: 'active', last_run: '2024-02-05T09:45:00Z' },
+  { id: 4, name: 'BDJobs', status: 'active', last_run: '2024-02-05T12:20:00Z' }
+];
+
+// Socket.IO connection
+io.on('connection', (socket) => {
+  console.log('🔌 WebSocket connected:', socket.id);
+  
+  socket.on('subscribe', (data) => {
+    console.log('Subscription:', data);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('🔌 WebSocket disconnected:', socket.id);
+  });
+});
+
+// ========== API ENDPOINTS ==========
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'EchoTrace Backend API',
+    version: '1.0.0'
+  });
+});
+
+// Authentication
+app.post('/api/auth/register', (req, res) => {
+  const { email, name, organization } = req.body;
+  
+  res.json({
+    message: 'User registered successfully',
+    user: {
+      id: 1,
+      email,
+      name,
+      organization: organization || 'Helios'
+    },
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AaGVsaW9zLmNvbSIsIm5hbWUiOiJIZWxpb3MgQWRtaW4iLCJpYXQiOjE3MDcyMjAwMDAsImV4cCI6MTcwNzgyNDgwMH0.mock-jwt-token-development'
+  });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { email } = req.body;
+  
+  res.json({
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AaGVsaW9zLmNvbSIsIm5hbWUiOiJIZWxpb3MgQWRtaW4iLCJpYXQiOjE3MDcyMjAwMDAsImV4cCI6MTcwNzgyNDgwMH0.mock-jwt-token-development',
+    user: {
+      id: 1,
+      email: email || 'admin@helios.com',
+      name: 'Helios Admin',
+      organization: 'Helios'
+    }
+  });
+});
+
+app.get('/api/auth/profile', (req, res) => {
+  // Mock authentication check
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  res.json({
+    user: {
+      id: 1,
+      email: 'admin@helios.com',
+      name: 'Helios Admin',
+      organization: 'Helios',
+      role: 'admin'
+    }
+  });
+});
+
+// ToR Management
+app.get('/api/tors', (req, res) => {
+  const { source, search, from_date, to_date } = req.query;
+  let filteredTors = [...mockTors];
+  
+  // Apply filters
+  if (source) {
+    filteredTors = filteredTors.filter(tor => tor.source === source);
+  }
+  
+  if (search) {
+    const searchLower = search.toLowerCase();
+    filteredTors = filteredTors.filter(tor => 
+      tor.title.toLowerCase().includes(searchLower) ||
+      tor.description.toLowerCase().includes(searchLower) ||
+      tor.organization.toLowerCase().includes(searchLower)
+    );
+  }
+  
+  // Calculate stats
+  const stats = {
+    total: mockTors.length,
+    newToday: 1,
+    expiringSoon: mockTors.filter(t => {
+      const deadline = new Date(t.deadline);
+      const today = new Date();
+      const sevenDaysFromNow = new Date(today.setDate(today.getDate() + 7));
+      return deadline <= sevenDaysFromNow && deadline >= new Date();
+    }).length,
+    bySource: {
+      'World Bank': mockTors.filter(t => t.source === 'World Bank').length,
+      'UNDP': mockTors.filter(t => t.source === 'UNDP').length,
+      'ADB': mockTors.filter(t => t.source === 'ADB').length
+    }
+  };
+  
+  res.json({ tors: filteredTors, stats });
+});
+
+app.get('/api/tors/:id', (req, res) => {
+  const tor = mockTors.find(t => t.id === parseInt(req.params.id));
+  if (!tor) {
+    return res.status(404).json({ error: 'ToR not found' });
+  }
+  res.json({ tor });
+});
+
+app.post('/api/tors/:id/read', (req, res) => {
+  res.json({ message: 'ToR marked as read' });
+});
+
+app.post('/api/tors/:id/favorite', (req, res) => {
+  res.json({ 
+    message: 'Favorite status updated',
+    is_favorite: true 
+  });
+});
+
+// Scraping Management
+app.get('/api/scraping/websites', (req, res) => {
+  res.json(mockWebsites);
+});
+
+app.get('/api/scraping/jobs', (req, res) => {
+  res.json([
+    { id: 1, website_id: 1, status: 'completed', started_at: '2024-02-05T10:00:00Z', items_found: 5 },
+    { id: 2, website_id: 2, status: 'completed', started_at: '2024-02-05T11:00:00Z', items_found: 3 }
+  ]);
+});
+
+// Export Management
+app.post('/api/export', (req, res) => {
+  const { format, filters } = req.body;
+  
+  res.json({
+    message: 'Export started',
+    exportId: Date.now(),
+    format: format || 'csv',
+    status: 'processing',
+    download_url: '/api/export/download/' + Date.now()
+  });
+});
+
+// Websites Management
+app.get('/api/websites', (req, res) => {
+  const websites = mockWebsites.map(w => ({
+    ...w,
+    url: `https://${w.name.toLowerCase().replace(' ', '')}.com`,
+    requires_login: w.name === 'World Bank' || w.name === 'UNDP',
+    requires_2fa: w.name === 'World Bank'
+  }));
+  
+  res.json(websites);
+});
+
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('../frontend/dist'));
+  app.get('*', (req, res) => {
+    res.sendFile('index.html', { root: '../frontend/dist' });
+  });
+}
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Cannot ${req.method} ${req.url}`
+  });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('🚨 Error:', err.stack);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+// Start server
+httpServer.listen(PORT, () => {
+  console.log(`🚀 EchoTrace Backend running on port ${PORT}`);
+  console.log(`📡 WebSocket server ready`);
+  console.log(`🔗 API: http://localhost:${PORT}/api`);
+  console.log(`🩺 Health: http://localhost:${PORT}/api/health`);
+  console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+  
+  // Broadcast server status via WebSocket
+  io.emit('server_status', { 
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    message: 'EchoTrace backend is ready'
+  });
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down server...');
+  io.close();
+  httpServer.close(() => {
+    console.log('✅ Server shutdown complete');
+    process.exit(0);
+  });
+});
