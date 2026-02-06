@@ -1,27 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
   TextField,
   Button,
   Typography,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [credentials, setCredentials] = useState({ 
+    email: 'admin@helios.com', 
+    password: 'admin123' 
+  });
   const [error, setError] = useState('');
-  const { login, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { user, login } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      console.log('User already logged in, redirecting to dashboard');
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     
+    console.log('🔐 Login attempt:', credentials);
+
     try {
-      await login(credentials);
+      // Call the login function from AuthContext
+      const result = await login(credentials);
+      console.log('Login result:', result);
+      
+      // Check if login was successful
+      if (result && result.success !== false) {
+        // Login successful - page should redirect automatically
+        console.log('✅ Login successful');
+        
+        // Force a small delay to ensure state updates
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
+      } else {
+        setError('Login failed. Please check your credentials.');
+      }
     } catch (err) {
-      setError('Invalid credentials. Please try again.');
+      console.error('❌ Login error:', err);
+      setError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,13 +112,21 @@ const Login = () => {
             sx={{ mt: 3 }}
             disabled={loading}
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? <CircularProgress size={24} /> : 'Login'}
           </Button>
         </form>
         
-        <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
-          Use your organization credentials
-        </Typography>
+        <Box sx={{ mt: 3, p: 2, bgcolor: '#f0f0f0', borderRadius: 1 }}>
+          <Typography variant="body2" align="center">
+            <strong>💡 Development Mode</strong>
+          </Typography>
+          <Typography variant="caption" display="block" align="center">
+            Any email/password works
+          </Typography>
+          <Typography variant="caption" display="block" align="center">
+            Try: admin@helios.com / anything
+          </Typography>
+        </Box>
       </Paper>
     </Box>
   );

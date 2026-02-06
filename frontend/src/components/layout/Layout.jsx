@@ -1,15 +1,15 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { Box, Toolbar ,
-  Typography } from '@mui/material';
-import Header from './Header';
-import Sidebar from './Sidebar';
+import React from 'react'
+import { Outlet } from 'react-router-dom'
+import { Box, Toolbar } from '@mui/material'
+import Header from './Header'
+import Sidebar from './Sidebar'
 
 const Layout = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       <Header />
       <Sidebar />
+
       <Box
         component="main"
         sx={{
@@ -21,10 +21,10 @@ const Layout = () => {
         }}
       >
         <Toolbar /> {/* Spacer for fixed header */}
-        <Outlet />
+        <Outlet />  {/* Render page here */}
       </Box>
     </Box>
-  );
-};
+  )
+}
 
-export default Layout;
+export default Layout
