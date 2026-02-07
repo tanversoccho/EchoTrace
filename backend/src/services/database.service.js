@@ -16,7 +16,7 @@ class DatabaseService {
   // Generate unique hash for a ToR
   generateHash(torData) {
     const hashString = `${torData.title}_${torData.link}_${torData.source}_${torData.publish_date || ''}`;
-    return crypto.createHash('md5').update(hashString).normalize('NFC')).digest('hex');
+    return crypto.createHash('md5').update(hashString).normalize('NFC').digest('hex');
   }
 
   // Check if ToR already exists

@@ -26,36 +26,36 @@ class Database {
     // Create tables
     // Add at the top of backend/src/database/db.js
     // Update the createTables method
-    async createTables() {
-      try {
-        const schemaQueries = createTORSchema();
+    // async createTables() {
+    //   try {
+    //     const schemaQueries = createTORSchema();
+    //
+    //     for (const query of schemaQueries) {
+    //         await this.db.exec(query);
+    //     }
+    //
+    //     console.log('✅ ToR database schema created successfully');
+    //
+    //     // Create default daily stats entry
+    //     await this.createDefaultStats();
+    //
+    //   } catch (error) {
+    //       console.error('❌ Error creating database schema:', error);
+    //       throw error;
+    //   }
+    // }
 
-        for (const query of schemaQueries) {
-            await this.db.exec(query);
-        }
-
-        console.log('✅ ToR database schema created successfully');
-
-        // Create default daily stats entry
-        await this.createDefaultStats();
-
-      } catch (error) {
-          console.error('❌ Error creating database schema:', error);
-          throw error;
-      }
-    }
-
-    async createDefaultStats() {
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        await this.db.run(
-        `INSERT OR IGNORE INTO daily_stats (date) VALUES (?)`,
-           [today]
-        );
-      } catch (error) {
-          console.error('Error creating default stats:', error);
-      }
-    }
+    // async createDefaultStats() {
+    //   try {
+    //     const today = new Date().toISOString().split('T')[0];
+    //     await this.db.run(
+    //     `INSERT OR IGNORE INTO daily_stats (date) VALUES (?)`,
+    //        [today]
+    //     );
+    //   } catch (error) {
+    //       console.error('Error creating default stats:', error);
+    //   }
+    // }
     await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

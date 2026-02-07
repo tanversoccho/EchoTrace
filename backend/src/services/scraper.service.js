@@ -1,6 +1,6 @@
 // backend/src/services/scraper.service.js
 import axios from 'axios';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import puppeteer from 'puppeteer';
 import { websiteConfigs } from '../../config/websites.js';
 import databaseService from './database.service.js';
