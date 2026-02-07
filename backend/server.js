@@ -3,6 +3,8 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
+import cron from 'node-cron';
+import { ScraperService } from './src/services/scraper.service.js';
 
 dotenv.config();
 
@@ -58,6 +60,20 @@ app.get('/api/tors', (req, res) => {
     tors: mockTors,
     stats: { total: 1, newToday: 0 }
   });
+});
+
+// Schedule a job to run at 2 AM every day
+cron.schedule('0 2 * * *', async () => {
+  console.log('Running scheduled daily scrape...');
+  for (const websiteKey in websiteConfigs) {
+    try {
+      await ScraperService.scrapeWebsite(websiteKey);
+      // Add delay between sites to be polite
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    } catch (error) {
+      console.error(`Failed to scrape ${websiteKey}:`, error);
+    }
+  }
 });
 
 // Start server

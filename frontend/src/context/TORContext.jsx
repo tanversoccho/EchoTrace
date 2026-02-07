@@ -68,28 +68,45 @@ export const TORProvider = ({ children }) => {
     }
   }, []);
 
+  // const fetchTORs = useCallback(async (params = {}) => {
+  //   setLoading(true);
+  //   try {
+  //     const query = new URLSearchParams(params).toString();
+  //     const response = await fetch(`http://localhost:5000/api/tors?${query}`);
+  //     const data = await response.json();
+  //     setTors(data.tors || []);
+  //     setStats(data.stats || {
+  //       total: 0,
+  //       newToday: 0,
+  //       expiringSoon: 0,
+  //       bySource: {},
+  //       byCategory: {}
+  //     });
+  //     applyFilters(data.tors || [], filters);
+  //   } catch (error) {
+  //     console.error('Failed to fetch ToRs:', error);
+  //     toast.error('Failed to fetch ToRs');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [filters]);
+
+    // In TORContext.jsx, update fetchTORs
   const fetchTORs = useCallback(async (params = {}) => {
     setLoading(true);
     try {
+      // Query your own backend API which now serves real data
       const query = new URLSearchParams(params).toString();
       const response = await fetch(`http://localhost:5000/api/tors?${query}`);
       const data = await response.json();
-      setTors(data.tors || []);
-      setStats(data.stats || {
-        total: 0,
-        newToday: 0,
-        expiringSoon: 0,
-        bySource: {},
-        byCategory: {}
-      });
-      applyFilters(data.tors || [], filters);
+      setTors(data.tors);
+      setStats(data.stats);
     } catch (error) {
       console.error('Failed to fetch ToRs:', error);
-      toast.error('Failed to fetch ToRs');
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []);
 
   const applyFilters = useCallback((data, filterConfig) => {
     let filtered = [...data];
