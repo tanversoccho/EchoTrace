@@ -92,17 +92,32 @@ export const TORProvider = ({ children }) => {
   // }, [filters]);
 
     // In TORContext.jsx, update fetchTORs
+  // In src/context/TORContext.jsx
   const fetchTORs = useCallback(async (params = {}) => {
     setLoading(true);
     try {
-      // Query your own backend API which now serves real data
       const query = new URLSearchParams(params).toString();
-      const response = await fetch(`http://localhost:5000/api/tors?${query}`);
+      const response = await fetch(`http://localhost:5000/api/db/tors?${query}`);
       const data = await response.json();
-      setTors(data.tors);
-      setStats(data.stats);
+      if (data.success) {
+        setTors(data.tors);
+        setStats({
+          total: data.stats.total || 0,
+          newToday: data.stats.new_count || 0,
+          expiringSoon: data.stats.expiring_soon || 0,
+          bySource: data.stats.by_source?.reduce((acc, item) => {
+            acc[item.source] = item.count;
+            return acc;
+          }, {}) || {},
+          byType: data.stats.by_type?.reduce((acc, item) => {
+            acc[item.document_type] = item.count;
+            return acc;
+          }, {}) || {}
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch ToRs:', error);
+      toast.error('Failed to fetch ToRs');
     } finally {
       setLoading(false);
     }

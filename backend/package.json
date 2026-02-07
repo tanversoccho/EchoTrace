@@ -18,5 +18,11 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
+  },
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "db:maintenance": "node scripts/database-maintenance.js",
+    "db:reset": "rm -rf storage/data/tor_database.db && npm run dev"
   }
 }
